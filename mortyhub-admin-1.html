@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MortyHub — Key Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #1c2230; --bg4: #21273a;
+    --border: #2a3347; --text: #e6edf3; --muted: #7d8590;
+    --blue: #3b82f6; --blue-hover: #2563eb;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; -webkit-font-smoothing: antialiased; }
+
+  /* LOGIN */
+  #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-inner { width: 100%; max-width: 420px; text-align: center; }
+  .login-logo-wrap { display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; background: var(--bg3); border-radius: 18px; margin-bottom: 20px; border: 1px solid var(--border); }
+  .login-logo-wrap svg { width: 36px; height: 36px; color: var(--blue); }
+  .login-title { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .login-subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: left; }
+  .login-error { color: var(--red); font-size: 13px; margin-top: 10px; text-align: center; display: none; }
+
+  /* APP */
+  #app-screen { display: none; min-height: 100vh; }
+  .navbar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .navbar-logo { display: flex; align-items: center; gap: 10px; flex: 1; }
+  .navbar-logo svg { width: 28px; height: 28px; color: var(--blue); }
+  .navbar-brand { font-size: 18px; font-weight: 700; }
+  .badge-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+  .navbar-actions { display: flex; align-items: center; gap: 14px; }
+  .btn-ghost { background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px; padding: 4px 2px; transition: color .15s; }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* CONTENT */
+  .content { padding: 16px; max-width: 700px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; }
+  .stat-num { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 13px; color: var(--muted); }
+  .stat-card.blue .stat-num { color: var(--blue); }
+  .stat-card.green .stat-num { color: var(--green); }
+  .stat-card.yellow .stat-num { color: var(--yellow); }
+  .stat-card.red .stat-num { color: var(--red); }
+  .stat-card.gray .stat-num { color: var(--muted); }
+  .stat-single { margin-bottom: 16px; }
+
+  /* SECTION */
+  .section-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 12px; }
+  .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title svg { width: 18px; height: 18px; color: var(--blue); }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .field-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; display: block; }
+  .field-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; color: var(--text); font-size: 15px; font-family: inherit; outline: none; transition: border-color .2s; }
+  .field-input:focus { border-color: var(--blue); }
+  .field-input::placeholder { color: var(--muted); }
+  .row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; color: var(--text); font-size: 15px; font-family: inherit; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237d8590' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; cursor: pointer; transition: border-color .2s; }
+  .field-select:focus { border-color: var(--blue); }
+  .field-select option { background: var(--bg2); }
+  .btn-primary { width: 100%; padding: 14px; background: var(--blue); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .2s; margin-top: 4px; }
+  .btn-primary:hover { background: var(--blue-hover); }
+  .btn-primary:active { transform: scale(.98); }
+
+  /* KEY POPUP */
+  .key-popup { display: none; background: var(--bg3); border: 1px solid var(--blue); border-radius: 10px; padding: 14px; margin-top: 12px; }
+  .key-popup-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .key-value { font-family: 'Courier New', monospace; font-size: 13px; color: var(--blue); word-break: break-all; font-weight: 600; }
+  .btn-copy { background: var(--bg4); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text); font-size: 12px; cursor: pointer; font-family: inherit; margin-top: 10px; transition: background .15s; }
+  .btn-copy:hover { background: var(--border); }
+
+  /* INFO BOX */
+  .info-box { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.7; }
+  .info-box strong { color: var(--blue); }
+
+  /* TABLE */
+  .keys-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .keys-header h3 { font-size: 16px; font-weight: 600; }
+  .search-input { background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 9px 16px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; width: 200px; transition: border-color .2s; }
+  .search-input:focus { border-color: var(--blue); }
+  .search-input::placeholder { color: var(--muted); }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; min-width: 580px; }
+  thead th { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; padding: 8px 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.02); }
+  tbody td { padding: 12px 8px; font-size: 13px; vertical-align: middle; }
+
+  .key-text { font-family: 'Courier New', monospace; color: var(--blue); font-size: 11px; font-weight: 600; word-break: break-all; max-width: 110px; line-height: 1.5; }
+  .hwid-text { color: var(--muted); font-size: 12px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hwid-none { color: var(--muted); font-style: italic; font-size: 12px; }
+  .nota-text { color: var(--muted); font-size: 12px; }
+
+  /* TIEMPO RESTANTE */
+  .tiempo-wrap { display: flex; flex-direction: column; gap: 3px; }
+  .tiempo-text { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .tiempo-perm { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+  .tiempo-agotado { font-size: 12px; color: var(--red); font-weight: 600; }
+
+  /* PULSE EN USO */
+  .en-uso-dot { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--green); }
+  .pulse-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.65)} }
+
+  /* BADGES */
+  .badge-active { display: inline-block; background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .badge-revoked { display: inline-block; background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 500; }
+  .badge-expired { display: inline-block; background: rgba(234,179,8,.12); color: var(--yellow); border: 1px solid rgba(234,179,8,.3); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 500; }
+
+  /* ACTION BUTTONS */
+  .actions-cell { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .btn-sm { border: none; border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity .15s, transform .1s; white-space: nowrap; }
+  .btn-sm:active { transform: scale(.95); }
+  .btn-sm:hover { opacity: .82; }
+  .btn-revocar { background: rgba(239,68,68,.18); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+  .btn-reset { background: rgba(59,130,246,.18); color: var(--blue); border: 1px solid rgba(59,130,246,.3); }
+  .btn-eliminar { background: var(--bg4); color: var(--muted); border: 1px solid var(--border); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; font-size: 14px; color: var(--text); z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) { .search-input{width:100%} .keys-header{flex-direction:column;align-items:flex-start} .content{padding:12px} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-inner">
+    <div class="login-logo-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+        <polyline points="2 17 12 22 22 17"/>
+        <polyline points="2 12 12 17 22 12"/>
+      </svg>
+    </div>
+    <h1 class="login-title">MortyHub</h1>
+    <p class="login-subtitle">Key Manager — Admin Access</p>
+    <div class="login-card">
+      <label class="field-label">Contraseña de admin</label>
+      <input class="field-input" type="password" id="pw-input" placeholder="Ingresa tu contraseña...">
+      <p class="login-error" id="login-error">Contraseña incorrecta.</p>
+      <button class="btn-primary" onclick="tryLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <nav class="navbar">
+    <div class="navbar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+        <polyline points="2 17 12 22 22 17"/>
+        <polyline points="2 12 12 17 22 12"/>
+      </svg>
+      <span class="navbar-brand">MortyHub</span>
+      <span class="badge-pill">Key Manager</span>
+    </div>
+    <div class="navbar-actions">
+      <button class="btn-ghost" onclick="refreshData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Refresh
+      </button>
+      <button class="btn-ghost" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+      <div class="stat-card green"><div class="stat-num" id="stat-activas">0</div><div class="stat-label">Activas</div></div>
+      <div class="stat-card yellow"><div class="stat-num" id="stat-expiradas">0</div><div class="stat-label">Expiradas</div></div>
+      <div class="stat-card red"><div class="stat-num" id="stat-revocadas">0</div><div class="stat-label">Revocadas</div></div>
+    </div>
+    <div class="stat-single">
+      <div class="stat-card gray"><div class="stat-num" id="stat-sinhwid">0</div><div class="stat-label">Sin HWID</div></div>
+    </div>
+
+    <!-- CREAR LLAVE -->
+    <div class="section-card">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Crear Llave
+      </div>
+      <div class="form-group">
+        <label class="field-label">Nota (opcional)</label>
+        <input class="field-input" type="text" id="nota-input" placeholder="ej. Usuario Discord: Morty123">
+      </div>
+      <div class="row-two">
+        <div class="form-group">
+          <label class="field-label">Duración</label>
+          <input class="field-input" type="number" id="duracion-input" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Unidad</label>
+          <select class="field-select" id="unidad-select">
+            <option value="horas">Horas</option>
+            <option value="dias" selected>Días</option>
+            <option value="semanas">Semanas</option>
+            <option value="meses">Meses</option>
+            <option value="permanente">Permanente</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="generarLlave()">Generar Llave</button>
+      <div class="key-popup" id="key-popup">
+        <div class="key-popup-label">⏱️ Tiempo solo corre cuando el script de Roblox está activo:</div>
+        <div class="key-value" id="generated-key-text"></div>
+        <button class="btn-copy" onclick="copiarLlave()">📋 Copiar llave</button>
+      </div>
+    </div>
+
+    <!-- INFO HEARTBEAT -->
+    <div class="info-box">
+      <strong>⚡ Sistema Heartbeat — tiempo justo</strong><br>
+      El tiempo de cada llave <strong>solo se consume mientras el script de Roblox está corriendo</strong>.
+      Si el jugador cierra el juego, sale del servidor o detiene el executor, el contador se pausa automáticamente.
+      El punto <span style="color:var(--green);font-weight:600">● En uso</span> aparece cuando la llave tiene actividad reciente.
+    </div>
+
+    <!-- TODAS LAS LLAVES -->
+    <div class="section-card">
+      <div class="keys-header">
+        <h3>Todas las Llaves</h3>
+        <input class="search-input" type="text" id="search-input" placeholder="Buscar llave, nota, HWID..." oninput="renderTable()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>LLAVE</th>
+              <th>NOTA</th>
+              <th>HWID</th>
+              <th>TIEMPO RESTANTE</th>
+              <th>ESTADO</th>
+              <th>ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody id="keys-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none">No hay llaves que mostrar.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASSWORD = 'herctorcito1826281';
+const STORAGE_KEY = 'mh_keys_v3';
+const HEARTBEAT_TIMEOUT = 65000; // 65s sin heartbeat = inactivo
+
+// ── HELPERS ──
+function rand(n, c='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'){
+  let r=''; for(let i=0;i<n;i++) r+=c[Math.floor(Math.random()*c.length)]; return r;
+}
+function genKey(){ return `MH-${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}-${rand(8)}`; }
+function genHWID(){ const h=(n)=>rand(n,'0123456789abcdef'); return `${h(8)}-${h(4)}-${h(4)}-${h(4)}-${h(12)}`; }
+
+function durToMs(dur, unidad){
+  if(unidad==='permanente') return null;
+  const map={horas:3600000,dias:86400000,semanas:604800000,meses:2592000000};
+  return dur*(map[unidad]||86400000);
+}
+
+// Formatea ms en texto legible: "3d 2h 15m", "25h 4m 12s", "4m 30s"
+function fmtMs(ms){
+  if(ms<=0) return null;
+  const s=Math.floor(ms/1000);
+  const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), sg=s%60;
+  if(d>0) return h>0?`${d}d ${h}h ${m}m`:`${d}d ${m}m`;
+  if(h>0) return `${h}h ${m}m ${sg}s`;
+  if(m>0) return `${m}m ${sg}s`;
+  return `${sg}s`;
+}
+
+function getKeys(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]; }catch{ return []; } }
+function saveKeys(k){ localStorage.setItem(STORAGE_KEY,JSON.stringify(k)); }
+
+// ── HEARTBEAT LOGIC ──
+function isEnUso(k){ return k.lastHeartbeat && (Date.now()-k.lastHeartbeat)<HEARTBEAT_TIMEOUT; }
+function getMsLeft(k){ if(k.totalMs===null) return null; return Math.max(0,k.totalMs-(k.consumedMs||0)); }
+
+function getStatus(k){
+  if(k.revoked) return 'revocada';
+  if(k.totalMs===null) return 'active';
+  return getMsLeft(k)<=0 ? 'expirada' : 'active';
+}
+
+// Tick cada segundo: consume 1s en llaves con heartbeat reciente
+function tick(){
+  const keys=getKeys();
+  let changed=false;
+  keys.forEach(k=>{
+    if(k.revoked||k.totalMs===null||getMsLeft(k)<=0) return;
+    if(isEnUso(k)){ k.consumedMs=(k.consumedMs||0)+1000; changed=true; }
+  });
+  if(changed){ saveKeys(keys); updateStats(); renderTable(); }
+}
+
+// API pública — Roblox llama esto vía POST a tu servidor
+// En esta demo puedes simularlo desde consola: window.heartbeat("MH-...")
+window.heartbeat=function(keyStr){
+  const keys=getKeys();
+  const i=keys.findIndex(k=>k.key===keyStr);
+  if(i<0){ console.warn('[MH] Key no encontrada'); return false; }
+  if(getStatus(keys[i])!=='active'){ console.warn('[MH] Key inactiva/expirada'); return false; }
+  keys[i].lastHeartbeat=Date.now();
+  if(!keys[i].hwid) keys[i].hwid=genHWID();
+  saveKeys(keys); updateStats(); renderTable();
+  console.log('[MH] Heartbeat OK ✅',keyStr);
+  return true;
+};
+
+// ── STATS ──
+function updateStats(){
+  const k=getKeys();
+  document.getElementById('stat-total').textContent=k.length;
+  document.getElementById('stat-activas').textContent=k.filter(x=>getStatus(x)==='active').length;
+  document.getElementById('stat-expiradas').textContent=k.filter(x=>getStatus(x)==='expirada').length;
+  document.getElementById('stat-revocadas').textContent=k.filter(x=>getStatus(x)==='revocada').length;
+  document.getElementById('stat-sinhwid').textContent=k.filter(x=>!x.hwid).length;
+}
+
+// ── TABLA ──
+function renderTable(){
+  const keys=getKeys();
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const filtered=keys.filter(k=>
+    k.key.toLowerCase().includes(q)||
+    (k.nota||'').toLowerCase().includes(q)||
+    (k.hwid||'').toLowerCase().includes(q)
+  );
+  const tbody=document.getElementById('keys-tbody');
+  const empty=document.getElementById('empty-state');
+  if(!filtered.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  tbody.innerHTML=filtered.map(k=>{
+    const ri=keys.indexOf(k);
+    const status=getStatus(k);
+    const enUso=isEnUso(k);
+    const msLeft=getMsLeft(k);
+
+    // TIEMPO
+    let tiempoCell;
+    if(k.totalMs===null){
+      tiempoCell=`<div class="tiempo-perm">∞ Permanente</div>`;
+    } else if(msLeft<=0){
+      tiempoCell=`<div class="tiempo-agotado">⏰ Tiempo agotado</div>`;
+    } else {
+      const txt=fmtMs(msLeft);
+      const color=msLeft<3600000?'var(--yellow)':msLeft<86400000?'var(--text)':'var(--text)';
+      const dot=enUso?`<div class="en-uso-dot"><span class="pulse-dot"></span>En uso</div>`:'';
+      tiempoCell=`<div class="tiempo-wrap"><span class="tiempo-text" style="color:${color}">${txt}</span>${dot}</div>`;
+    }
+
+    // ESTADO
+    const badge=status==='active'?`<span class="badge-active">active</span>`:
+                status==='revocada'?`<span class="badge-revoked">revocada</span>`:
+                `<span class="badge-expired">expirada</span>`;
+
+    // HWID
+    const hwid=k.hwid
+      ?`<span class="hwid-text" title="${k.hwid}">${k.hwid.substring(0,14)}…</span>`
+      :`<span class="hwid-none">Sin HWID</span>`;
+
+    // ACCIONES
+    const rev=(!k.revoked&&status!=='expirada')?`<button class="btn-sm btn-revocar" onclick="revocarKey(${ri})">Revocar</button>`:'';
+    const rst=k.hwid?`<button class="btn-sm btn-reset" onclick="resetHWID(${ri})">Reset HWID</button>`:'';
+
+    return `<tr>
+      <td><div class="key-text">${k.key}</div></td>
+      <td><span class="nota-text">${k.nota||'—'}</span></td>
+      <td>${hwid}</td>
+      <td>${tiempoCell}</td>
+      <td>${badge}</td>
+      <td><div class="actions-cell">${rev}${rst}<button class="btn-sm btn-eliminar" onclick="eliminarKey(${ri})">Eliminar</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ACCIONES ──
+function tryLogin(){
+  const val=document.getElementById('pw-input').value;
+  const err=document.getElementById('login-error');
+  if(val===PASSWORD){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    err.style.display='none';
+    updateStats(); renderTable();
+    setInterval(tick,1000);
+  } else {
+    err.style.display='block';
+    document.getElementById('pw-input').focus();
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown',e=>{ if(e.key==='Enter') tryLogin(); });
+
+function logout(){
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pw-input').value='';
+}
+
+function refreshData(){ updateStats(); renderTable(); showToast('✅ Datos actualizados'); }
+
+function generarLlave(){
+  const nota=document.getElementById('nota-input').value.trim();
+  const dur=parseInt(document.getElementById('duracion-input').value)||1;
+  const unidad=document.getElementById('unidad-select').value;
+  const nk={key:genKey(),nota:nota||null,hwid:null,totalMs:durToMs(dur,unidad),consumedMs:0,lastHeartbeat:null,revoked:false,createdAt:new Date().toISOString()};
+  const keys=getKeys(); keys.unshift(nk); saveKeys(keys);
+  document.getElementById('generated-key-text').textContent=nk.key;
+  document.getElementById('key-popup').style.display='block';
+  document.getElementById('nota-input').value='';
+  updateStats(); renderTable();
+  showToast('🔑 Llave generada');
+}
+
+function copiarLlave(){
+  navigator.clipboard.writeText(document.getElementById('generated-key-text').textContent).catch(()=>{});
+  showToast('📋 Llave copiada');
+}
+
+function revocarKey(i){ const k=getKeys(); if(!k[i]) return; k[i].revoked=true; saveKeys(k); updateStats(); renderTable(); showToast('🚫 Llave revocada'); }
+function resetHWID(i){ const k=getKeys(); if(!k[i]) return; k[i].hwid=null; saveKeys(k); updateStats(); renderTable(); showToast('🔄 HWID reseteado'); }
+function eliminarKey(i){ const k=getKeys(); if(!k[i]) return; k.splice(i,1); saveKeys(k); updateStats(); renderTable(); showToast('🗑️ Llave eliminada'); }
+
+let toastTimer;
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2500); }
+
+// ── SEED DATA ──
+(function(){
+  if(getKeys().length>0) return;
+  const now=Date.now();
+  const seeds=[
+    {key:genKey(),nota:null,           hwid:genHWID(),totalMs:86400000,   consumedMs:3600000,  lastHeartbeat:now-5000,  revoked:false}, // en uso ahora
+    {key:genKey(),nota:'Discord: Morty123',hwid:genHWID(),totalMs:604800000,consumedMs:86400000, lastHeartbeat:null,      revoked:false},
+    {key:genKey(),nota:null,           hwid:null,      totalMs:10800000,  consumedMs:7200000,  lastHeartbeat:now-8000,  revoked:false}, // en uso
+    {key:genKey(),nota:'Tester VIP',   hwid:genHWID(),totalMs:null,      consumedMs:0,        lastHeartbeat:null,      revoked:false}, // permanente
+    {key:genKey(),nota:null,           hwid:null,      totalMs:3600000,   consumedMs:3590000,  lastHeartbeat:null,      revoked:false}, // casi expirada
+    {key:genKey(),nota:null,           hwid:genHWID(),totalMs:86400000,   consumedMs:86400000, lastHeartbeat:null,      revoked:false}, // expirada
+    {key:genKey(),nota:'Test2',        hwid:null,      totalMs:172800000, consumedMs:0,        lastHeartbeat:null,      revoked:false},
+    {key:genKey(),nota:null,           hwid:genHWID(),totalMs:86400000,   consumedMs:43200000, lastHeartbeat:null,      revoked:false},
+  ];
+  seeds.forEach(s=>s.createdAt=new Date().toISOString());
+  saveKeys(seeds);
+})();
+</script>
+
+<!--
+╔══════════════════════════════════════════════════════════════╗
+║  SCRIPT LUA PARA ROBLOX — Sistema Heartbeat MortyHub         ║
+║  Pegar en tu loader / executor                               ║
+╠══════════════════════════════════════════════════════════════╣
+
+local KEY        = "MH-XXXX-XXXX-XXXX-XXXX-XXXXXXXX"
+local SERVER     = "https://tu-servidor.com/heartbeat"  -- tu endpoint
+local INTERVAL   = 30  -- segundos entre heartbeats (recomendado: 30)
+local HWID       = game:GetService("RbxAnalyticsService"):GetClientId()
+
+-- Primero verifica que la key sea válida
+local function verificarKey()
+    local res = (syn and syn.request or request)({
+        Url    = SERVER .. "/verify",
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body   = '{"key":"'..KEY..'","hwid":"'..HWID..'"}'
+    })
+    if res.StatusCode == 200 then
+        local data = game:GetService("HttpService"):JSONDecode(res.Body)
+        return data.valid == true
+    end
+    return false
+end
+
+-- Manda heartbeat al servidor — el tiempo SOLO corre al recibir esto
+local function sendHeartbeat()
+    pcall(function()
+        local res = (syn and syn.request or request)({
+            Url    = SERVER .. "/heartbeat",
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body   = '{"key":"'..KEY..'","hwid":"'..HWID..'"}'
+        })
+        -- Si la key expiró en medio del uso, expulsar
+        if res.StatusCode == 403 then
+            game:GetService("Players").LocalPlayer:Kick("[MortyHub] Key expirada o revocada.")
+        end
+    end)
+end
+
+-- Inicio
+if not verificarKey() then
+    game:GetService("Players").LocalPlayer:Kick("[MortyHub] Key inválida.")
+    return
+end
+
+-- Heartbeat loop — se detiene automáticamente si el personaje sale
+local active = true
+game:GetService("Players").LocalPlayer.AncestryChanged:Connect(function()
+    active = false  -- jugador salió → heartbeat se detiene → timer se pausa
+end)
+
+sendHeartbeat()  -- primer ping inmediato
+task.spawn(function()
+    while active do
+        task.wait(INTERVAL)
+        if active then sendHeartbeat() end
+    end
+end)
+
+-- TU SCRIPT AQUÍ ABAJO --
+-->
+</body>
+</html>
